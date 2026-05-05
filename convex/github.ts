@@ -75,6 +75,33 @@ export const getLatestConvexBackendContainer = internalAction({
   },
 });
 
+export const getLatestConvexJsRelease = internalAction({
+  args: {},
+  handler: async () => {
+    const { data } = await octokit.git.listMatchingRefs({
+      owner: "get-convex",
+      repo: "convex",
+      ref: "tags/npm/",
+    });
+    const re = /^refs\/tags\/(npm\/\d+\.\d+\.\d+)$/;
+    const versions = data
+      .map((r) => r.ref.match(re)?.[1])
+      .filter((v): v is string => !!v)
+      .map(
+        (v) =>
+          v.slice("npm/".length).split(".").map(Number) as [
+            number,
+            number,
+            number,
+          ],
+      )
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    const latest = versions.at(-1);
+    if (!latest) throw new Error("No npm/x.y.z tag found");
+    return latest.join(".");
+  },
+});
+
 export const trackConvexBackendRelease = internalAction({
   args: {},
   handler: async (ctx) => {
@@ -84,6 +111,20 @@ export const trackConvexBackendRelease = internalAction({
     await ctx.runMutation(api.version_history.addRow, {
       version,
       service: "local-dev",
+      secret: process.env.ISITOUT_SECRET!,
+    });
+  },
+});
+
+export const trackConvexJsRelease = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const version = await ctx.runAction(
+      internal.github.getLatestConvexJsRelease,
+    );
+    await ctx.runMutation(api.version_history.addRow, {
+      version,
+      service: "convex-js",
       secret: process.env.ISITOUT_SECRET!,
     });
   },

@@ -17,6 +17,12 @@ crons.interval(
 );
 
 crons.interval(
+  "track convex-js releases",
+  { minutes: 1 },
+  internal.github.trackConvexJsRelease,
+);
+
+crons.interval(
   "fetch deployed versions",
   { minutes: 1 },
   internal.versions.fetchDeployedVersions,

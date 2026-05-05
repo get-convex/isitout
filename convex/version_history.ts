@@ -106,6 +106,8 @@ function renderVersionHistoryRow(row: Doc<"version_history">) {
     url = `https://github.com/get-convex/convex-backend/releases/tag/${row.version}`;
   } else if (row.service == "self-hosted") {
     url = `https://github.com/get-convex/convex-backend/pkgs/container/convex-backend`;
+  } else if (row.service == "convex-js") {
+    url = `https://github.com/get-convex/convex/releases/tag/npm/${encodeURIComponent(row.version)}`;
   } else {
     const [datePart, rest] = row.version.split("-");
     if (rest) {
