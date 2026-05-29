@@ -77,7 +77,11 @@ export const resolveRef = action({
     const urlPr = trimmed.match(
       /^https?:\/\/github\.com\/get-convex\/convex\/pull\/(\d+)(?:[/?#].*)?$/,
     );
-    const prNumberStr = explicitPr?.[1] ?? urlPr?.[1] ?? bareDigits;
+    const graphitePr = trimmed.match(
+      /^https?:\/\/app\.graphite\.com\/github\/pr\/get-convex\/convex\/(\d+)(?:[/?#].*)?$/,
+    );
+    const prNumberStr =
+      explicitPr?.[1] ?? urlPr?.[1] ?? graphitePr?.[1] ?? bareDigits;
     if (prNumberStr) {
       const number = Number(prNumberStr);
       try {
