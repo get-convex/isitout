@@ -28,6 +28,24 @@ import {
 // 7 days
 const STALE_AGE_MILLIS = 1000 * 3600 * 24 * 7;
 
+const REF_PARAM = "ref";
+
+function readRefFromUrl(): string {
+  return new URLSearchParams(window.location.search).get(REF_PARAM) ?? "";
+}
+
+function writeRefToUrl(ref: string) {
+  const url = new URL(window.location.href);
+  if (ref.trim()) {
+    url.searchParams.set(REF_PARAM, ref.trim());
+  } else {
+    url.searchParams.delete(REF_PARAM);
+  }
+  if (url.toString() !== window.location.href) {
+    window.history.replaceState(null, "", url);
+  }
+}
+
 function PushTime({ d }: { d: Date }) {
   return (
     <TooltipProvider>
@@ -202,7 +220,7 @@ function Rows() {
   const [value, setValue] = useState("all");
   const [latestOnly, setLatestOnly] = useState(true);
   const displayLatestOnly = latestOnly && value === "all";
-  const [gitShaToCheck, setGitShaToCheck] = useState("");
+  const [gitShaToCheck, setGitShaToCheck] = useState(readRefFromUrl);
   const resolveRef = useAction(api.github.resolveRef);
   const [resolved, setResolved] = useState<{
     sha: string;
@@ -215,6 +233,15 @@ function Rows() {
   } | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => writeRefToUrl(gitShaToCheck), 300);
+    return () => clearTimeout(t);
+  }, [gitShaToCheck]);
+  useEffect(() => {
+    const onPopState = () => setGitShaToCheck(readRefFromUrl());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   useEffect(() => {
     const input = gitShaToCheck.trim();
     setResolved(null);
