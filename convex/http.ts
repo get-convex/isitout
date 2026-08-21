@@ -16,9 +16,23 @@ http.route({
         status: 400,
       });
     }
+    const delayHoursParam = url.searchParams.get("delayHours");
+    let delayHours: number | undefined = undefined;
+    if (delayHoursParam !== null) {
+      delayHours =
+        delayHoursParam.trim() === "" ? NaN : Number(delayHoursParam);
+      if (!Number.isFinite(delayHours) || delayHours < 0) {
+        return new Response(
+          JSON.stringify({
+            error: "delayHours must be a non-negative number of hours",
+          }),
+          { status: 400 }
+        );
+      }
+    }
     const version = await ctx.runQuery(
       api.version_history.latestStableReleaseForBiz,
-      { service }
+      { service, delayHours }
     );
     if (!version) {
       return new Response(

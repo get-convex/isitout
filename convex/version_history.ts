@@ -199,13 +199,17 @@ export const prevRev = query({
   },
 });
 
+const DEFAULT_BIZ_DELAY_HOURS = 24;
+
 export const latestStableReleaseForBiz = query({
   args: {
     service: v.string(),
+    delayHours: v.optional(v.number()),
   },
   returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
-    const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+    const delayHours = args.delayHours ?? DEFAULT_BIZ_DELAY_HOURS;
+    const cutoff = Date.now() - delayHours * 60 * 60 * 1000;
     const release = await ctx.db
       .query("version_history")
       .withIndex("by_service_release_tag_and_is_stable", (q) =>
@@ -213,7 +217,7 @@ export const latestStableReleaseForBiz = query({
           .eq("service", args.service)
           .eq("release_tag", "default")
           .eq("is_stable", true)
-          .lte("_creationTime", twoDaysAgo),
+          .lte("_creationTime", cutoff),
       )
       .order("desc")
       .first();
