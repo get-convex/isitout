@@ -23,6 +23,18 @@ crons.interval(
 );
 
 crons.interval(
+  "track convex-py releases",
+  { minutes: 1 },
+  internal.github.trackConvexPyRelease,
+);
+
+crons.interval(
+  "track convex-rs releases",
+  { minutes: 1 },
+  internal.github.trackConvexRsRelease,
+);
+
+crons.interval(
   "fetch deployed versions",
   { minutes: 1 },
   internal.versions.fetchDeployedVersions,

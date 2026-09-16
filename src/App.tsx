@@ -29,6 +29,7 @@ import {
 const STALE_AGE_MILLIS = 1000 * 3600 * 24 * 7;
 
 const REF_PARAM = "ref";
+const STANDALONE_PACKAGE_SERVICES = new Set(["convex-py", "convex-rs"]);
 
 function readRefFromUrl(): string {
   return new URLSearchParams(window.location.search).get(REF_PARAM) ?? "";
@@ -69,7 +70,14 @@ function gitRefFor(service: string, version: string): string {
   if (service === "convex-js") {
     return `npm/${version.split("-")[0]}`;
   }
+  if (STANDALONE_PACKAGE_SERVICES.has(service)) {
+    return `${service}/${version.split("-")[0]}`;
+  }
   return `${service}/${version}`;
+}
+
+function gitRepositoryFor(service: string): string {
+  return STANDALONE_PACKAGE_SERVICES.has(service) ? service : "convex";
 }
 
 function Ago({ d }: { d: Date }) {
@@ -127,16 +135,17 @@ function Row({
   const service = message.service;
   const version = message.version;
   const base =
-    service === "convex-js"
+    service === "convex-js" || STANDALONE_PACKAGE_SERVICES.has(service)
       ? gitRefFor(service, version)
       : version.split("-").pop()!;
+  const gitRepository = gitRepositoryFor(service);
 
   const prev = prevDoc?.version || "";
 
   useEffect(() => {
     const fetchData = async () => {
       setComparison("");
-      if (!gitShaToCheck) {
+      if (!gitShaToCheck || STANDALONE_PACKAGE_SERVICES.has(service)) {
         return;
       }
       const comparison = await compareCommits({
@@ -178,13 +187,13 @@ function Row({
         <span>
           <a
             className="underline text-primary text-xs"
-            href={`https://github.com/get-convex/convex/compare/${gitRefFor(service, prev)}...get-convex:convex:${gitRefFor(service, version)}`}
+            href={`https://github.com/get-convex/${gitRepository}/compare/${gitRefFor(service, prev)}...get-convex:${gitRepository}:${gitRefFor(service, version)}`}
           >
             diff previous
           </a>{" "}
           <a
             className="underline text-primary text-xs"
-            href={`https://github.com/get-convex/convex/compare/${gitRefFor(service, version)}...main`}
+            href={`https://github.com/get-convex/${gitRepository}/compare/${gitRefFor(service, version)}...main`}
           >
             diff main
           </a>

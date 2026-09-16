@@ -152,44 +152,58 @@ export const getLatestConvexBackendContainer = internalAction({
   },
 });
 
+async function getLatestTaggedRelease(repo: string, tagPrefix: string) {
+  const { data } = await octokit.git.listMatchingRefs({
+    owner: "get-convex",
+    repo,
+    ref: `tags/${tagPrefix}/`,
+  });
+  const re = new RegExp(
+    `^refs/tags/${tagPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/(\\d+\\.\\d+\\.\\d+)$`,
+  );
+  const versions = data
+    .flatMap((r) => {
+      const versionMatch = r.ref.match(re);
+      if (!versionMatch) {
+        return [];
+      }
+
+      const versionStr = versionMatch[1];
+
+      return [
+        {
+          commit: r.object.sha,
+          versionStr,
+          version: versionStr.split(".").map(Number) as [
+            number,
+            number,
+            number,
+          ],
+        },
+      ];
+    })
+    .sort(
+      ({ version: a }, { version: b }) =>
+        a[0] - b[0] || a[1] - b[1] || a[2] - b[2],
+    );
+  const latest = versions.at(-1);
+  if (!latest) throw new Error(`No ${tagPrefix}/x.y.z tag found in ${repo}`);
+  return `${latest.versionStr}-${latest.commit.slice(0, 7)}`;
+}
+
 export const getLatestConvexJsRelease = internalAction({
   args: {},
-  handler: async () => {
-    const { data } = await octokit.git.listMatchingRefs({
-      owner: "get-convex",
-      repo: "convex",
-      ref: "tags/npm/",
-    });
-    const re = /^refs\/tags\/npm\/(\d+\.\d+\.\d+)$/;
-    const versions = data
-      .flatMap((r) => {
-        const versionMatch = r.ref.match(re);
-        if (!versionMatch) {
-          return [];
-        }
+  handler: async () => getLatestTaggedRelease("convex", "npm"),
+});
 
-        const versionStr = versionMatch[1];
+export const getLatestConvexPyRelease = internalAction({
+  args: {},
+  handler: async () => getLatestTaggedRelease("convex-py", "convex-py"),
+});
 
-        return [
-          {
-            commit: r.object.sha,
-            versionStr,
-            version: versionStr.split(".").map(Number) as [
-              number,
-              number,
-              number,
-            ],
-          },
-        ];
-      })
-      .sort(
-        ({ version: a }, { version: b }) =>
-          a[0] - b[0] || a[1] - b[1] || a[2] - b[2],
-      );
-    const latest = versions.at(-1);
-    if (!latest) throw new Error("No npm/x.y.z tag found");
-    return `${latest.versionStr}-${latest.commit.slice(0, 7)}`;
-  },
+export const getLatestConvexRsRelease = internalAction({
+  args: {},
+  handler: async () => getLatestTaggedRelease("convex-rs", "convex-rs"),
 });
 
 export const trackConvexBackendRelease = internalAction({
@@ -215,6 +229,34 @@ export const trackConvexJsRelease = internalAction({
     await ctx.runMutation(api.version_history.addRow, {
       version,
       service: "convex-js",
+      secret: process.env.ISITOUT_SECRET!,
+    });
+  },
+});
+
+export const trackConvexPyRelease = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const version = await ctx.runAction(
+      internal.github.getLatestConvexPyRelease,
+    );
+    await ctx.runMutation(api.version_history.addRow, {
+      version,
+      service: "convex-py",
+      secret: process.env.ISITOUT_SECRET!,
+    });
+  },
+});
+
+export const trackConvexRsRelease = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const version = await ctx.runAction(
+      internal.github.getLatestConvexRsRelease,
+    );
+    await ctx.runMutation(api.version_history.addRow, {
+      version,
+      service: "convex-rs",
       secret: process.env.ISITOUT_SECRET!,
     });
   },
