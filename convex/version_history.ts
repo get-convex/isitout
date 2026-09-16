@@ -109,6 +109,9 @@ function renderVersionHistoryRow(row: Doc<"version_history">) {
   } else if (row.service == "convex-js") {
     const [npmVersion] = row.version.split("-");
     url = `https://github.com/get-convex/convex/releases/tag/npm/${encodeURIComponent(npmVersion)}`;
+  } else if (row.service == "convex-py" || row.service == "convex-rs") {
+    const [packageVersion] = row.version.split("-");
+    url = `https://github.com/get-convex/${row.service}/releases/tag/${row.service}/${encodeURIComponent(packageVersion)}`;
   } else {
     const [datePart, rest] = row.version.split("-");
     if (rest) {
