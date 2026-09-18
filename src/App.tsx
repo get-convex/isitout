@@ -29,6 +29,7 @@ import {
 const STALE_AGE_MILLIS = 1000 * 3600 * 24 * 7;
 
 const REF_PARAM = "ref";
+const SERVICE_PARAM = "service";
 const STANDALONE_PACKAGE_SERVICES = new Set(["convex-py", "convex-rs"]);
 
 function readRefFromUrl(): string {
@@ -41,6 +42,24 @@ function writeRefToUrl(ref: string) {
     url.searchParams.set(REF_PARAM, ref.trim());
   } else {
     url.searchParams.delete(REF_PARAM);
+  }
+  if (url.toString() !== window.location.href) {
+    window.history.replaceState(null, "", url);
+  }
+}
+
+function readServiceFromUrl(): string {
+  return (
+    new URLSearchParams(window.location.search).get(SERVICE_PARAM) || "all"
+  );
+}
+
+function writeServiceToUrl(service: string) {
+  const url = new URL(window.location.href);
+  if (service === "all") {
+    url.searchParams.delete(SERVICE_PARAM);
+  } else {
+    url.searchParams.set(SERVICE_PARAM, service);
   }
   if (url.toString() !== window.location.href) {
     window.history.replaceState(null, "", url);
@@ -226,7 +245,7 @@ function Row({
 }
 
 function Rows() {
-  const [value, setValue] = useState("all");
+  const [value, setValue] = useState(readServiceFromUrl);
   const [latestOnly, setLatestOnly] = useState(true);
   const displayLatestOnly = latestOnly && value === "all";
   const [gitShaToCheck, setGitShaToCheck] = useState(readRefFromUrl);
@@ -247,7 +266,13 @@ function Rows() {
     return () => clearTimeout(t);
   }, [gitShaToCheck]);
   useEffect(() => {
-    const onPopState = () => setGitShaToCheck(readRefFromUrl());
+    writeServiceToUrl(value);
+  }, [value]);
+  useEffect(() => {
+    const onPopState = () => {
+      setGitShaToCheck(readRefFromUrl());
+      setValue(readServiceFromUrl());
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
