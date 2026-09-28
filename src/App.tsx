@@ -99,6 +99,25 @@ function gitRepositoryFor(service: string): string {
   return STANDALONE_PACKAGE_SERVICES.has(service) ? service : "convex";
 }
 
+const PUSH_INSTRUCTIONS_PATHS: Record<string, string | null> = {
+  "convex-js": "npm",
+  "convex-py": "open-source",
+  "convex-rs": "open-source",
+  "db-cluster-migration": "db-clusters/migration",
+  "convex-tools": null,
+  "fastlane-offramp": null,
+  "fastlane-onramp": null,
+  "service-index": null,
+};
+
+function pushInstructionsUrlFor(service: string): string | null {
+  const path =
+    service in PUSH_INSTRUCTIONS_PATHS
+      ? PUSH_INSTRUCTIONS_PATHS[service]
+      : service;
+  return path === null ? null : `http://go/push/${path}`;
+}
+
 function Ago({ d }: { d: Date }) {
   return (
     <div className="ago">
@@ -158,6 +177,7 @@ function Row({
       ? gitRefFor(service, version)
       : version.split("-").pop()!;
   const gitRepository = gitRepositoryFor(service);
+  const pushInstructionsUrl = pushInstructionsUrlFor(service);
 
   const prev = prevDoc?.version || "";
 
@@ -221,7 +241,15 @@ function Row({
       <div className="w-[10%]">
         <ReleaseTagBadge tag={message.release_tag} />
       </div>
-      <div className="w-[15%]">{service}</div>
+      <div className="w-[15%]">
+        {pushInstructionsUrl ? (
+          <a href={pushInstructionsUrl} target="_blank" rel="noreferrer">
+            {service}
+          </a>
+        ) : (
+          service
+        )}
+      </div>
       <div className="w-[20%] flex flex-col">
         <PushTime d={new Date(message.pushDate)} />
         <Ago d={d} />
