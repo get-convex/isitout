@@ -76,23 +76,48 @@ const renderedVersionHistoryRow = v.object({
 });
 
 export const list = query({
-  args: { service: v.optional(v.string()) },
+  args: {
+    service: v.optional(v.string()),
+    release_tag: v.optional(v.string()),
+  },
   returns: v.array(renderedVersionHistoryRow),
-  handler: async (ctx, { service }) => {
+  handler: async (ctx, { service, release_tag }) => {
     await checkIdentity(ctx);
-    let queryResult;
-    if (service) {
-      queryResult = await ctx.db
-        .query("version_history")
-        .withIndex("by_service", (q) => q.eq("service", service))
+    if (release_tag === undefined) {
+      const rows = await (
+        service
+          ? ctx.db
+              .query("version_history")
+              .withIndex("by_service", (q) => q.eq("service", service))
+          : ctx.db.query("version_history")
+      )
         .order("desc")
         .take(20);
-    } else {
-      queryResult = await ctx.db
-        .query("version_history")
-        .order("desc")
-        .take(20);
+      return rows.map(renderVersionHistoryRow);
     }
+    // Rows written before release tags existed have no tag and render as "default".
+    const tags =
+      release_tag === "default" ? [release_tag, undefined] : [release_tag];
+    const perTag = await Promise.all(
+      tags.map((tag) =>
+        (service
+          ? ctx.db
+              .query("version_history")
+              .withIndex("by_service_and_release_tag", (q) =>
+                q.eq("service", service).eq("release_tag", tag),
+              )
+          : ctx.db
+              .query("version_history")
+              .withIndex("by_release_tag", (q) => q.eq("release_tag", tag))
+        )
+          .order("desc")
+          .take(20),
+      ),
+    );
+    const queryResult = perTag
+      .flat()
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 20);
     const result = queryResult.map(renderVersionHistoryRow);
     return result;
   },
