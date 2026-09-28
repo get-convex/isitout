@@ -30,6 +30,8 @@ const STALE_AGE_MILLIS = 1000 * 3600 * 24 * 7;
 
 const REF_PARAM = "ref";
 const SERVICE_PARAM = "service";
+const TAG_PARAM = "tag";
+const RELEASE_TAGS = ["default", "biz", "staging", "pro"];
 const STANDALONE_PACKAGE_SERVICES = new Set(["convex-py", "convex-rs"]);
 
 function readRefFromUrl(): string {
@@ -60,6 +62,22 @@ function writeServiceToUrl(service: string) {
     url.searchParams.delete(SERVICE_PARAM);
   } else {
     url.searchParams.set(SERVICE_PARAM, service);
+  }
+  if (url.toString() !== window.location.href) {
+    window.history.replaceState(null, "", url);
+  }
+}
+
+function readTagFromUrl(): string {
+  return new URLSearchParams(window.location.search).get(TAG_PARAM) || "all";
+}
+
+function writeTagToUrl(tag: string) {
+  const url = new URL(window.location.href);
+  if (tag === "all") {
+    url.searchParams.delete(TAG_PARAM);
+  } else {
+    url.searchParams.set(TAG_PARAM, tag);
   }
   if (url.toString() !== window.location.href) {
     window.history.replaceState(null, "", url);
@@ -274,6 +292,7 @@ function Row({
 
 function Rows() {
   const [value, setValue] = useState(readServiceFromUrl);
+  const [tag, setTag] = useState(readTagFromUrl);
   const [latestOnly, setLatestOnly] = useState(true);
   const displayLatestOnly = latestOnly && value === "all";
   const [gitShaToCheck, setGitShaToCheck] = useState(readRefFromUrl);
@@ -297,9 +316,13 @@ function Rows() {
     writeServiceToUrl(value);
   }, [value]);
   useEffect(() => {
+    writeTagToUrl(tag);
+  }, [tag]);
+  useEffect(() => {
     const onPopState = () => {
       setGitShaToCheck(readRefFromUrl());
       setValue(readServiceFromUrl());
+      setTag(readTagFromUrl());
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -337,9 +360,12 @@ function Rows() {
   const messages =
     useQuery(api.version_history.list, {
       service: value === "all" ? undefined : value,
+      release_tag: tag === "all" ? undefined : tag,
     }) || [];
   const latestPushes = useQuery(api.version_history.listLatest) || [];
-  const pushes = displayLatestOnly ? latestPushes : messages;
+  const pushes = displayLatestOnly
+    ? latestPushes.filter((p) => tag === "all" || p.release_tag === tag)
+    : messages;
 
   const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = (
     event,
@@ -416,6 +442,37 @@ function Rows() {
           value={gitShaToCheck}
           placeholder="Paste git SHA or PR #/URL"
         />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              {tag === "all" ? "All tags" : tag}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuRadioGroup
+              className="w-48"
+              value={tag}
+              onValueChange={setTag}
+            >
+              {["all", ...RELEASE_TAGS].map((t) => (
+                <DropdownMenuRadioItem
+                  key={t}
+                  value={t}
+                  className="flex items-center justify-between px-2 cursor-pointer border-2 border-transparent hover:border-primary hover:border-solid"
+                >
+                  <span className="w-5 flex-shrink-0">
+                    <ItemIndicator>
+                      <CheckIcon />
+                    </ItemIndicator>
+                  </span>
+                  <span className="flex-grow">
+                    {t === "all" ? "All tags" : <ReleaseTagBadge tag={t} />}
+                  </span>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {resolveError && (
           <p className="text-sm text-red-600">{resolveError}</p>
         )}

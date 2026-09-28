@@ -12,6 +12,7 @@ export default defineSchema({
   })
     .index("by_service", ["service"])
     .index("by_service_and_version", ["service", "version"])
+    .index("by_release_tag", ["release_tag"])
     .index("by_service_and_release_tag", ["service", "release_tag"])
     .index("by_service_release_tag_and_is_stable", [
       "service",
