@@ -115,7 +115,7 @@ function pushInstructionsUrlFor(service: string): string | null {
     service in PUSH_INSTRUCTIONS_PATHS
       ? PUSH_INSTRUCTIONS_PATHS[service]
       : service;
-  return path === null ? null : `http://go/push/${path}`;
+  return path === null ? null : `https://go.cvx.is/push/${path}`;
 }
 
 function Ago({ d }: { d: Date }) {
@@ -243,7 +243,12 @@ function Row({
       </div>
       <div className="w-[15%]">
         {pushInstructionsUrl ? (
-          <a href={pushInstructionsUrl} target="_blank" rel="noreferrer">
+          <a
+            className="underline text-blue-800 visited:text-purple-800"
+            href={pushInstructionsUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
             {service}
           </a>
         ) : (
