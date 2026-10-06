@@ -31,6 +31,8 @@ const STALE_AGE_MILLIS = 1000 * 3600 * 24 * 7;
 const REF_PARAM = "ref";
 const SERVICE_PARAM = "service";
 const STANDALONE_PACKAGE_SERVICES = new Set(["convex-py", "convex-rs"]);
+// Versioned by bare commit SHA, without a `<service>/<version>` git tag.
+const SHA_VERSIONED_SERVICES = new Set(["dashboard", "docs"]);
 
 function readRefFromUrl(): string {
   return new URLSearchParams(window.location.search).get(REF_PARAM) ?? "";
@@ -91,6 +93,9 @@ function gitRefFor(service: string, version: string): string {
   }
   if (STANDALONE_PACKAGE_SERVICES.has(service)) {
     return `${service}/${version.split("-")[0]}`;
+  }
+  if (SHA_VERSIONED_SERVICES.has(service)) {
+    return version;
   }
   return `${service}/${version}`;
 }
