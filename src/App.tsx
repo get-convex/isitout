@@ -1,6 +1,7 @@
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
+import { UNTAGGED_SERVICES } from "./untagged_services";
 import React, { useEffect, useState } from "react";
 import { formatRFC7231, formatDistanceToNowStrict } from "date-fns";
 
@@ -97,6 +98,9 @@ function gitRefFor(service: string, version: string): string {
   if (SHA_VERSIONED_SERVICES.has(service)) {
     return version;
   }
+  if (UNTAGGED_SERVICES.has(service)) {
+    return version.split("-").pop()!;
+  }
   return `${service}/${version}`;
 }
 
@@ -109,9 +113,13 @@ const PUSH_INSTRUCTIONS_PATHS: Record<string, string | null> = {
   "convex-py": "open-source",
   "convex-rs": "open-source",
   "db-cluster-migration": "db-clusters/migration",
+  "auth-emails": null,
   "convex-tools": null,
+  data: null,
   "fastlane-offramp": null,
   "fastlane-onramp": null,
+  "grafana-mcp": null,
+  postalservice: null,
   "service-index": null,
 };
 

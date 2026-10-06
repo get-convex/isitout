@@ -3,6 +3,7 @@ import { mutation, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { UNTAGGED_SERVICES } from "../src/untagged_services";
 
 const expectedSecret = process.env.ISITOUT_SECRET;
 
@@ -112,6 +113,10 @@ function renderVersionHistoryRow(row: Doc<"version_history">) {
   } else if (row.service == "convex-py" || row.service == "convex-rs") {
     const [packageVersion] = row.version.split("-");
     url = `https://github.com/get-convex/${row.service}/releases/tag/${row.service}/${encodeURIComponent(packageVersion)}`;
+  } else if (UNTAGGED_SERVICES.has(row.service)) {
+    const [datePart, sha] = row.version.split("-");
+    buildDate = +moment(datePart).toDate();
+    url = `https://github.com/get-convex/convex/commit/${sha}`;
   } else {
     const [datePart, rest] = row.version.split("-");
     if (rest) {
